@@ -50,16 +50,17 @@ out unusable data such as nan values."""
 
 """ some color index data is not available and is in the array as nan. The 
 following lines filter those out of the data."""
+
 sel = ~np.isnan(ColorIndex)
 ColorIndex = ColorIndex[sel]
 absoluteMag = absoluteMag[sel]
 Luminosity = Luminosity [sel]
 
 Temperatures = fct.Temp(ColorIndex)
-fct.Radius(Luminosity, Temperatures)
+Radius = fct.Radius(Luminosity, Temperatures)
 
 #========== Plotting an HR diagram =================================
-
+plt.figure(1)
 fig, ax = plt.subplots(figsize=(8,10))
 
 ax.set_xlim(-0.5, 2.5)
@@ -74,7 +75,7 @@ ax.set_ylabel('Absolute magnitude')
 ax.yaxis.label.set_fontsize(20)
 
 ax.scatter(ColorIndex, absoluteMag,
-           s=1, edgecolors='none', c='k')
+           s=1, edgecolors='none', c=-ColorIndex, cmap = 'Spectral')
 
 ax.tick_params(axis='both', labelsize=14)
 #====================================================================
@@ -87,7 +88,7 @@ brightBois = ID[sel]
 """
 
 #======== Temperatures ==============================
-
+"""
 fig, bx = plt.subplots(figsize=(8,10))
 
 bx.set_xlim(15000, 1000)
@@ -105,29 +106,69 @@ bx.scatter(Temperatures, absoluteMag,
            s=1, edgecolors='none', c='k')
 
 bx.tick_params(axis='both', labelsize=14)
-
-#============ Logarithmic Plot ==================
 """
-fig, cx = plt.loglog(figsize=(8,10))
 
-cx.set_xlim(-0.5, 2.5)
-cx.set_ylim(20, -10)
-cx.grid()
-cx.set_title('H-R Diagram')
+#================ Least Square method using restricted radius =================
 
-cx.title.set_fontsize(20)
-cx.set_xlabel('Color index B-V')
-cx.xaxis.label.set_fontsize(20)
-cx.set_ylabel('Absolute magnitude')
-cx.yaxis.label.set_fontsize(20)
-
-cx.scatter(ColorIndex, absoluteMag,
-           s=1, edgecolors='none', c='k')
-
-cx.tick_params(axis='both', labelsize=14)
-
+""" 
+Only using stars that are approximately 1 solar radius, we can determine
+the exponent on L = R**alpha * T** Beta to determine the dependence of Luminosity
+on the temperature of the star.  
 """
-dPar = fct.lin_LS(ColorIndex, absoluteMag)
+solsel = np.isclose(Radius, 1, 0.05)
+SolarRadiiStarsRad = Radius[solsel]
+SolarRadiiStarsLum = Luminosity[solsel]
+SolarRadiiStarsTemp = Temperatures[solsel]
+dParT = fct.lin_LS(np.log(SolarRadiiStarsTemp), np.log(SolarRadiiStarsLum))
+
+solarLum = 3.827e26 # Solar Luminosity in Watts
+solarTemp = 5777 #temperature of the Sun so that Temp is in solar units
+tempsel = np.isclose(Temperatures/solarTemp, 1, 0.05)
+SolarTempStarsTemp = Temperatures[tempsel]
+SolarTempStarsLum = Luminosity[tempsel]
+SolarTempStarsRad = Radius[tempsel]
+dParR = fct.lin_LS(np.log10(SolarTempStarsRad), np.log10(SolarTempStarsLum))
+
+#======== Plot of Temperature vs Luminosity for 1 solar Radius stars ==========
+"""
+This is mostly to prove to myself that this data is indeed a power function
+"""
+plt.figure(1)
+plt.title('One Solar Radius Stars')
+plt.loglog(SolarRadiiStarsTemp, SolarRadiiStarsLum,'ro', markersize = 2)
+
+plt.xlabel('Temperature')
+plt.ylabel('Luminosity')
+plt.grid(True)
+plt.show()
+
+plt.figure(3)
+plt.title('Solar Temperature Stars')
+plt.loglog(SolarTempStarsLum, SolarTempStarsRad, 'bo', markersize = 2)
+plt.xlabel('Luminosity (L$\odot$)')
+plt.ylabel('Radii(R$\odot$')
+plt.show()
+
+plt.figure(4)
+plt.title('Values of Luminosity Using new a and b (Same Temperature')
+plt.plot(SolarTempStarsRad, 10**dParR['Y_hat'], 'go', markersize = 2)
+plt.ylabel('Luminosity (L$\odot$)')
+plt.xlabel('Radius (R$\odot$)')
+plt.show()
+
+plt.figure(5)
+plt.title('Values of Temperature using new a and b for (Same Radius)')
+plt.plot(SolarRadiiStarsLum, 10**dParT['Y_hat'], 'bo', markersize = 2)
+plt.xlabel('Luminosity (L$\odot$)')
+plt.ylabel('Temperature (K)')
+plt.xlim(0, 125)
+plt.ylim(0, 70000)
+plt.show()
+
+
+
+#==============================================================================
+#============ SOLVING FINALLY =================================================
 
 
 
