@@ -11,6 +11,7 @@ This is a temporary script file.
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import functions as fct
 
 #===================== data import ============================================
@@ -74,8 +75,10 @@ ax.xaxis.label.set_fontsize(20)
 ax.set_ylabel('Absolute magnitude')
 ax.yaxis.label.set_fontsize(20)
 
+norm = mpl.colors.Normalize(vmin = -1.5, vmax = .1)
+cmap = 'Spectral'
 ax.scatter(ColorIndex, absoluteMag,
-           s=1, edgecolors='none', c=-ColorIndex, cmap = 'Spectral')
+           s=1, edgecolors='none', norm = norm, c=-ColorIndex, cmap = cmap)
 
 ax.tick_params(axis='both', labelsize=14)
 #====================================================================
